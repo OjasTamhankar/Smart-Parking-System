@@ -15,32 +15,39 @@ let lastFetch = 0;
 
 const TOTAL_SLOTS = 10;
 
+const TOTAL_SLOTS = 10;
+
 async function fetchData() {
-  const pins = Array.from({ length: TOTAL_SLOTS }, (_, i) => `V${i}`);
+  try {
+    // generate pin query: V0&V1&V2...
+    const pinQuery = Array.from({ length: TOTAL_SLOTS }, (_, i) => `V${i}`).join("&");
 
-  const values = await Promise.all(
-    pins.map(async (pin) => {
-      const url = `https://blynk.cloud/external/api/get?token=${AUTH_TOKEN}&${pin}`;
-      const res = await axios.get(url);
-      return parseInt(res.data);
-    })
-  );
+    const url = `https://blynk.cloud/external/api/get?token=${AUTH_TOKEN}&${pinQuery}`;
 
-  const spots = values.map((v, i) => ({
-    id: i + 1,
-    occupied: v === 1
-  }));
+    const res = await axios.get(url);
 
-  const available = spots.filter(s => !s.occupied).length;
+    const values = res.data.map(v => parseInt(v));
 
-  return {
-    success: true,
-    timestamp: Date.now(),
-    totalSpots: TOTAL_SLOTS,
-    availableSpots: available,
-    occupiedSpots: TOTAL_SLOTS - available,
-    spots
-  };
+    const spots = values.map((v, i) => ({
+      id: i + 1,
+      occupied: v === 1
+    }));
+
+    const available = spots.filter(s => !s.occupied).length;
+
+    return {
+      success: true,
+      timestamp: Date.now(),
+      totalSpots: TOTAL_SLOTS,
+      availableSpots: available,
+      occupiedSpots: TOTAL_SLOTS - available,
+      spots
+    };
+
+  } catch (err) {
+    console.error("Blynk fetch error:", err.message);
+    throw err;
+  }
 }
 
 app.get("/", (req, res) => {
