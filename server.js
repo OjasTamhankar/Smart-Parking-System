@@ -13,8 +13,10 @@ const AUTH_TOKEN = process.env.BLYNK_TOKEN;
 let cache = null;
 let lastFetch = 0;
 
+const TOTAL_SLOTS = 10;
+
 async function fetchData() {
-  const pins = ["V0", "V1", "V2", "V3"];
+  const pins = Array.from({ length: TOTAL_SLOTS }, (_, i) => `V${i}`);
 
   const values = await Promise.all(
     pins.map(async (pin) => {
@@ -34,9 +36,9 @@ async function fetchData() {
   return {
     success: true,
     timestamp: Date.now(),
-    totalSpots: 4,
+    totalSpots: TOTAL_SLOTS,
     availableSpots: available,
-    occupiedSpots: 4 - available,
+    occupiedSpots: TOTAL_SLOTS - available,
     spots
   };
 }
