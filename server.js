@@ -13,7 +13,6 @@ const AUTH_TOKEN = process.env.BLYNK_TOKEN;
 let cache = null;
 let lastFetch = 0;
 
-const TOTAL_SLOTS = 10;
 
 const TOTAL_SLOTS = 10;
 
