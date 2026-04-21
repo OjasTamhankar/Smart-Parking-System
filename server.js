@@ -10,22 +10,32 @@ app.use(cors());
 const PORT = process.env.PORT || 5000;
 const AUTH_TOKEN = process.env.BLYNK_TOKEN;
 
+// ===== CONFIG =====
+const TOTAL_SLOTS = 10;
+const CACHE_DURATION = 2000; // 2 seconds
+
+// ===== CACHE =====
 let cache = null;
 let lastFetch = 0;
 
-
-const TOTAL_SLOTS = 10;
-
+// ===== FETCH FUNCTION =====
 async function fetchData() {
   try {
-    // generate pin query: V0&V1&V2...
+    // Create query: V0&V1&V2...V9
     const pinQuery = Array.from({ length: TOTAL_SLOTS }, (_, i) => `V${i}`).join("&");
 
     const url = `https://blynk.cloud/external/api/get?token=${AUTH_TOKEN}&${pinQuery}`;
 
-    const res = await axios.get(url);
+    const res = await axios.get(url, { timeout: 3000 });
 
-    const values = res.data.map(v => parseInt(v));
+    // Debug (check logs on Render if needed)
+    console.log("Blynk raw response:", res.data);
+
+    // Ensure always array
+    const raw = Array.isArray(res.data) ? res.data : [res.data];
+
+    // Convert safely
+    const values = raw.map(v => parseInt(v) || 0);
 
     const spots = values.map((v, i) => ({
       id: i + 1,
@@ -49,21 +59,33 @@ async function fetchData() {
   }
 }
 
+// ===== ROUTES =====
+
+// Root route
 app.get("/", (req, res) => {
   res.send("Smart Parking API is running 🚀");
 });
 
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// Main API
 app.get("/api/parking-status", async (req, res) => {
   try {
-    if (Date.now() - lastFetch < 2000 && cache) {
+    // Serve cache if fresh
+    if (Date.now() - lastFetch < CACHE_DURATION && cache) {
       return res.json(cache);
     }
 
     const data = await fetchData();
+
     cache = data;
     lastFetch = Date.now();
 
     res.json(data);
+
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -72,6 +94,7 @@ app.get("/api/parking-status", async (req, res) => {
   }
 });
 
+// ===== START SERVER =====
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
