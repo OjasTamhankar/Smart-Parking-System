@@ -32,10 +32,13 @@ async function fetchData() {
     console.log("Blynk raw response:", res.data);
 
     // Ensure always array
-    const raw = Array.isArray(res.data) ? res.data : [res.data];
+    const data = res.data;
 
-    // Convert safely
-    const values = raw.map(v => parseInt(v) || 0);
+    // Convert object → ordered array [V0, V1, ..., V9]
+    const values = Array.from({ length: TOTAL_SLOTS }, (_, i) => {
+      const key = `V${i}`;
+      return parseInt(data[key]) || 0;
+    });
 
     const spots = values.map((v, i) => ({
       id: i + 1,
